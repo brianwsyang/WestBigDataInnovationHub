@@ -1,0 +1,52 @@
+h1, p, li {
+  font-family: 'Rosario', sans-serif;
+}
+
+h1 {
+  background-color: #fff04d;
+  color: #fff04d;
+  /* opacity: 0; */
+
+  font-size: 4em;
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1em;
+  margin: 25px 0;
+}
+
+#chart_placeholder {
+  text-align: center;
+  margin: 20px;
+  padding: 5px;
+}
+
+.posline {
+  fill: none;
+  stroke: lightseagreen;
+  stroke-width: 1.5px;
+}
+
+.posarea {
+  fill: lightyellow;
+}
+
+.negline {
+  fill: none;
+  stroke: darkgrey;
+  stroke-width: 1.5px;
+}
+
+.negarea {
+  fill: yellow;
+}
+
+.dependencyWheel {
+  font: 10px sans-serif;
+}
+
+form .btn-primary {
+  margin-top: 25px;
+}
+
+svg:not(:root){ overflow:hidden; }
+textarea{ overflow:auto;vertical-align:top; }
