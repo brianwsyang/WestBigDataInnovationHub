@@ -14,7 +14,13 @@ h1 {
   margin: 25px 0;
 }
 
-#chart_placeholder {
+#dw_placeholder {
+  text-align: center;
+  margin: 20px;
+  padding: 5px;
+}
+
+#tl_placeholder {
   text-align: center;
   margin: 20px;
   padding: 5px;

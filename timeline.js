@@ -31,7 +31,7 @@ var negline = d3.line()
   .y(function(d) { return y(d.rev*-1) })
   .curve(d3.curveBasis);
 
-var svg = d3.select("#chart_placeholder")
+var svg = d3.select("#tl_placeholder")
   .append("svg")
   .attr("width", width + (margin.left + margin.right))
   .attr("height", height + (margin.top + margin.bottom))
