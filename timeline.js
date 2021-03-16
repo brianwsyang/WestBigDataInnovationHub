@@ -1,7 +1,5 @@
 d3.chart = d3.chart || {};
 
-// based on https://bl.ocks.org/d3noob/119a138ef9bd1d8f0a8d57ea72355252
-
 var margin = {top: 20, right: 20, bottom: 30, left: 30},
     width = 750 - (margin.left + margin.right),
     height = 550 - (margin.top + margin.bottom);
