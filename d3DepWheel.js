@@ -1,26 +1,23 @@
 d3.chart = d3.chart || {};
 
-/**
- * Based on Dependency Wheel made by François Zaninotto
- * Converted to fit the needs of West Big Data Innovation Hub
- * 
+/** 
+ * Additional reference:
  * @author François Zaninotto
- * @license matrix
- * @see https://github.com/fzaninotto/DependencyWheel for complete source and license
+ * @see https://github.com/fzaninotto/DependencyWheel
  */
 
 d3.chart.dependencyWheel = function(options) {
-
-  var width = "700";
+  var width = "800";
+  var height = "650";
   var margin = 250;
   var padding = 0.02;
 
   function chart(selection) {
     selection.each(function(data) {
-
+      // console.log(data);
       var matrix = data.matrix;
-      var packageNames = data.packageNames;
-      var radius = width / 2 - margin - 100;
+      var programNames = data.programNames;
+      var radius = height / 2 - margin - 100;
 
       // create the layout
       var chord = d3.chord()
@@ -36,16 +33,16 @@ d3.chart.dependencyWheel = function(options) {
         .attr("height", width)
         .attr("class", "dependencyWheel")
         .append("g")
-        .attr("transform", "translate(" + (width / 2) + "," + (width / 2) + ")");
+        .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
 
       var arc = d3.arc()
         .innerRadius(radius)
         .outerRadius(radius + 10);
 
       var fill = function(d) {
-        // const color = "hsl(" + parseInt(((packageNames[d.index][packageNames[d.index].length-1].charCodeAt() - 97) / 26) * 360, 10) + ",85%,75%)";
-        const color = "hsl(" + parseInt(d.index / packageNames.length * 360, 10) + ",95%,65%)";
-        // console.log(parseInt(((packageNames[d.index][2].charCodeAt() - 97) / 26) * 360, 10))
+        // const color = "hsl(" + parseInt(((programNames[d.index][programNames[d.index].length-1].charCodeAt() - 97) / 26) * 360, 10) + ",85%,75%)";
+        const color = "hsl(" + parseInt(d.index / programNames.length * 360, 10) + ",95%,65%)";
+        // console.log(parseInt(((programNames[d.index][2].charCodeAt() - 97) / 26) * 360, 10))
         // console.log('-');
         return color;
       };
@@ -70,13 +67,16 @@ d3.chart.dependencyWheel = function(options) {
                 }
               });
           groups.push(i);
-          var length = groups.length;
+          
           gEnter.selectAll('.group')
               .filter(function(d) {
-                for (var i = 0; i < length; i++) {
+                for (var i = 0; i < groups.length; i++) {
                   if(groups[i] == d.index) return false;
                 }
                 return true;
+                // return groups.some(function (group) {
+                //   return group != d.index;
+                // });
               })
               .transition()
                 .style("opacity", opacity);
@@ -110,7 +110,7 @@ d3.chart.dependencyWheel = function(options) {
                   tspan = text.append("tspan")
                               .attr("x", x)
                               .attr("y", y)
-                              .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                              .attr("dy", lineNumber * lineHeight + dy + "em")
                               .text(word);
               }
           }
@@ -145,27 +145,27 @@ d3.chart.dependencyWheel = function(options) {
         .attr("dy", ".35em")
         .attr("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
         .attr("transform", function(d) {
-          return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")" +
+          return "rotate(" + ((d.angle * 180 / Math.PI) - 90) + ")" +
           
           // "translate(" + (radius + 15) + "," + (-25) + ")";// +
-                 "translate(" + (radius + 15) + ")" +
+                 "translate(" + (radius + 20) + ")" +
             (d.angle > Math.PI ? "rotate(180)" : "");
         })
-        .attr("fill", 'grey') // CHANGE RECT COLOR HERE ********************************************************************
+        .attr("fill", 'black') // CHANGE FONT COLOR HERE ********************************************************************
+        .attr("font-size", 12)
         .classed('package-label', true)
-        .attr("id", function(d) { return packageNames[d.index] })
+        .attr("id", function(d) { return programNames[d.index] })
         .style("cursor", "pointer")
-        .text(function(d) { return packageNames[d.index]; })
+        .text(function(d) { return programNames[d.index]; })
         // .call(wrap, 15)
         .on("mouseover", fade(0.1))
         .on("mouseout", fade(1));
 
       // g.append("svg:text")
       //  .attr("x", function(d) { return parent.x })
-      //  .text(function(d) { if (d.index === 0)  return packageNames[d.index]; })
+      //  .text(function(d) { if (d.index === 0)  return programNames[d.index]; })
       //  .call(wrap, 10, 0.25)
 
-      // UNCOMMENT FOR PATHS INSIDE THE WHEEL ******************************************************************************
       gEnter.selectAll("path.chord")
           .data(chordResult)
           .enter().append("svg:path")
