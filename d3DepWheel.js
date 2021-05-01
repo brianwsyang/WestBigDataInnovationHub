@@ -1,202 +1,237 @@
-d3.chart = d3.chart || {};
-
-/** 
- * Additional reference:
- * @author François Zaninotto
- * @see https://github.com/fzaninotto/DependencyWheel
+/**
+ * @ref http://jsfiddle.net/KjrGF/12/
+ * cool filter options to check out in the future
  */
 
-d3.chart.dependencyWheel = function(options) {
-  var width = "800";
-  var height = "650";
-  var margin = 250;
-  var padding = 0.02;
+// const { layout } = require("d3");
 
-  function chart(selection) {
-    selection.each(function(data) {
-      // console.log(data);
-      var matrix = data.matrix;
-      var programNames = data.programNames;
-      var radius = height / 2 - margin - 100;
+var margin = { top:30, right:25, bottom:30, left:25 },
+    width = 800 - (margin.left + margin.right),
+    height = 650 - (margin.top + margin.bottom),
+    padding = 0.02,
+    outerRadius = Math.min(width, height) / 2 - 100,
+    innerRadius = outerRadius - 15;
 
-      // create the layout
-      var chord = d3.chord()
-        .padAngle(padding)
-        .sortSubgroups(d3.descending);
+var dataset = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQZh1p5c6wLl1A3ir81WmupVlzOUr3MPGjMbV9F42HRu_XrKXUOu2wOu_WQPOIr4Am5aiu_heGT3AM1/pub?gid=0&single=true&output=csv";
 
-      // Select the svg element, if it exists.
-      var svg = d3.select(this).selectAll("svg").data([data]);
+var formatPercent = d3.format("%");
+var numberWCommas = d3.format("0,f");
 
-      // Otherwise, create the skeletal chart.
-      var gEnter = svg.enter().append("svg:svg")
-        .attr("width", width)
-        .attr("height", width)
-        .attr("class", "dependencyWheel")
-        .append("g")
-        .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
+var arc = d3.svg.arc()
+                  .innerRadius(innerRadius)
+                  .outerRadius(outerRadius);
 
-      var arc = d3.arc()
-        .innerRadius(radius)
-        .outerRadius(radius + 10);
+var path = d3.svg.chord()
+                  .radius(innerRadius);
+            
+function getDefaultLayout() {
+  return d3.layout.chord()
+                  .padding(padding)
+                  .sortSubgroups(d3.descending)
+                  .sortChords(d3.ascending);
+}
 
-      var fill = function(d) {
-        // const color = "hsl(" + parseInt(((programNames[d.index][programNames[d.index].length-1].charCodeAt() - 97) / 26) * 360, 10) + ",85%,75%)";
-        const color = "hsl(" + parseInt(d.index / programNames.length * 360, 10) + ",95%,65%)";
-        // console.log(parseInt(((programNames[d.index][2].charCodeAt() - 97) / 26) * 360, 10))
-        // console.log('-');
-        return color;
-      };
+var last_layout;
+var neighborhoods;
 
-      // Returns an event handler for fading a given chord group.
-      var fade = function(opacity) {
-        return function(g, i) {
-          gEnter.selectAll(".chord")
-              .filter(function(d) {
-                return d.source.index != i && d.target.index != i;
-              })
-            .transition()
-              .style("opacity", opacity);
-          var groups = [];
-          gEnter.selectAll(".chord")
-              .filter(function(d) {
-                if (d.source.index == i) {
-                  groups.push(d.target.index);
-                }
-                if (d.target.index == i) {
-                  groups.push(d.source.index);
-                }
-              });
-          groups.push(i);
-          
-          gEnter.selectAll('.group')
-              .filter(function(d) {
-                for (var i = 0; i < groups.length; i++) {
-                  if(groups[i] == d.index) return false;
-                }
-                return true;
-                // return groups.some(function (group) {
-                //   return group != d.index;
-                // });
-              })
-              .transition()
-                .style("opacity", opacity);
-        };
-      };
+var g = d3.select("#dw_placeholder")
+          .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+          .append("g")
+            .attr("id", "circle")
+            .attr("transform",
+                  "translate(" + (width / 2) + "," + (height / 2) + ")");
 
-      function wrap(text, width, lineH) {
-        text.each(function () {
-          var text = d3.select(this),
-              words = text.text().split(/\s+/).reverse(),
-              word,
-              line = [],
-              lineNumber = 0,
-              lineHeight = lineH, // ems
-              x = text.attr("x"),
-              y = text.attr("y"),
-              dy = 0, //parseFloat(text.attr("dy")),
-              tspan = text.text(null)
-                          .append("tspan")
-                          .attr("x", x)
-                          .attr("y", y)
-                          .attr("dy", dy + "em");
-          console.log(d3.select(this));
-          while (word = words.pop()) {
-              line.push(word);
-              tspan.text(line.join(" "));
-              if (tspan.node().getComputedTextLength() > width) {
-                  line.pop();
-                  tspan.text(line.join(" "));
-                  line = [word];
-                  tspan = text.append("tspan")
-                              .attr("x", x)
-                              .attr("y", y)
-                              .attr("dy", lineNumber * lineHeight + dy + "em")
-                              .text(word);
-              }
-          }
-        });
-      }
+g.append("circle")
+    .attr("r", outerRadius);
 
-      var chordResult = chord(matrix);
+d3.csv(dataset, function(error, neighborhoodData) {
 
-      var rootGroup = chordResult.groups[0];
-      var rotation = - (rootGroup.endAngle - rootGroup.startAngle) / 2 * (180 / Math.PI);
+  if (error) { 
+    alert("Error reading file: ", error.statusText);
+    return;
+  }
 
-      var g = gEnter.selectAll("g.group")
-        .data(chordResult.groups)
-        .enter().append("svg:g")
-        .attr("class", "group")
-        .attr("transform", function(d) {
-          return "rotate(" + rotation + ")";
-        });
+  neighborhoods = neighborhoodData;
+  updateChords(dataset);
 
-      g.append("svg:path")
-        .style("fill", fill)
-        .style("stroke", fill)
-        .attr("d", arc)
-        .style("cursor", "pointer")
-        .on("mouseover", fade(0.1))
-        .on("mouseout", fade(1));
+});
 
-      g.append("svg:text")
-        .each(function(d) { d.angle = (d.startAngle + d.endAngle) / 2; })
-        .attr("width", 120)
-        .attr("height", 50)
-        .attr("dy", ".35em")
-        .attr("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
-        .attr("transform", function(d) {
-          return "rotate(" + ((d.angle * 180 / Math.PI) - 90) + ")" +
-          
-          // "translate(" + (radius + 15) + "," + (-25) + ")";// +
-                 "translate(" + (radius + 20) + ")" +
-            (d.angle > Math.PI ? "rotate(180)" : "");
-        })
-        .attr("fill", 'black') // CHANGE FONT COLOR HERE ********************************************************************
-        .attr("font-size", 12)
-        .classed('package-label', true)
-        .attr("id", function(d) { return programNames[d.index] })
-        .style("cursor", "pointer")
-        .text(function(d) { return programNames[d.index]; })
-        // .call(wrap, 15)
-        .on("mouseover", fade(0.1))
-        .on("mouseout", fade(1));
+function updateChords(datasetURL) {
 
-      // g.append("svg:text")
-      //  .attr("x", function(d) { return parent.x })
-      //  .text(function(d) { if (d.index === 0)  return programNames[d.index]; })
-      //  .call(wrap, 10, 0.25)
+  var matrix = JSON.parse(d3.select(datasetURL).text());
+  console.log(matrix);
 
-      gEnter.selectAll("path.chord")
-          .data(chordResult)
-          .enter().append("svg:path")
-          .attr("class", "chord")
-          .style("stroke", function(d) { return d3.rgb(fill(d.source)).darker(); })
-          .style("fill", function(d) { return fill(d.source); })
-          .attr("d", d3.ribbon().radius(radius))
+  layout = getDefaultLayout();
+  layout.matrix(matrix);
+
+  var groupG = g.selectAll("g.group")
+                .data(layout.groups(), function(d) { return d.index; });
+  
+  groupG.exit()
+        .transition()
+          .duration(1500)
+          .attr("opacity", 0)
+        .remove();
+  
+  var newGroups = groupG.enter()
+                        .append("g")
+                          .attr("class", "group");
+  
+  newGroups.append("title");
+
+  groupG.select("title")
+        .text(function(d, i) { return neighborhoods[i].name; });
+
+  newGroups.append("path")
+            .attr("id", function(d) { return "group" + d.index; })
+            .style("fill", function(d) { return neighborhoods[d.index].color; });
+
+  groupG.select("path")
+        .transition()
+          .duration(1500)
+          .attr("opacity", 0.5)
+        .attrTween("d", arcTween(last_layout))
+          .transition()
+            .duration(100)
+            .attr("opacity", 1);
+  
+  newGroups.append("svg:text")
+            .attr("xlink:href", function(d) { return "#group" + d.index; })
+            .attr("dy", "0.35em")
+            .attr("color", "#fff")
+            .text(function(d) { return neighborhoods[d.index].name; });
+  
+  groupG.select("text")
+        .transition()
+          .duration(1500)
           .attr("transform", function(d) {
-            return "rotate(" + rotation + ")";
+            d.angle = (d.startAngle + d.endAngle) / 2;
+            return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")" +
+                   "translate(" (innerRadius + 25) + ")" +
+                   (d.angle > Math.PI ? " rotate(180)" : " rotate(0)");
           })
-          .style("opacity", 1);
+          .attr("text-anchor", function(d) { return d.angle > Math.PI ? "end" : "begin"; });
+  
+  var chordPaths = g.selectAll("path.chord")
+                    .data(layout.chords(), chordKey);
+
+  var newChords = chordPaths.enter()
+                            .append("path")
+                              .attr("class", "chord");
+
+  newChords.append("title");
+
+  chordPaths.select("title")
+            .text(function(d) { return neighborhoods[d.source.index].name });
+  
+  chordPaths.exit()
+            .transition()
+              .duration(1500)
+              .attr("opacity", 0)
+              .remove();
+
+  chordPaths.transition()
+              .duration(1500)
+              .attr("opacity", 0.5)
+              .style("fill", function(d) { return neighborhoods[d.source.index].color; })
+            .attrTween("d", chordTween(last_layout))
+              .transition()
+                .duration(100)
+                .attr("opacity", 1);
+
+  groupG.on("mouseover", function(d) {
+    chordPaths.classed("fade", function(p) { return (p.source.index != d.index) && (p.target.index != d.index) });
+  });
+
+  last_layout = layout;
+
+}
+
+function arcTween(oldLayout) {
+
+  var oldGroups = {};
+
+  if (oldLayout) {
+    oldLayout.groups().forEach(function(groupData) {
+      oldGroups[groupData.index] = groupData;
     });
   }
 
-  chart.width = function(value) {
-    if (!arguments.length) return width;
-    width = value;
-    return chart;
+  return function(d, i) {
+
+    var tween;
+    var old = oldGroups[d.index];
+
+    if (old) {
+      tween = d3.interpolate(old, d);
+    }
+    else {
+      var emptyArc = { startAngle:d.startAngle, endAngle:d.endAngle };
+      tween = d3.interpolate(emptyArc, d);
+    }
+
+    return function(t) { return arc(tween(t)); };
+
   };
 
-  chart.margin = function(value) {
-    if (!arguments.length) return margin;
-    margin = value;
-    return chart;
+}
+
+function chordKey(data) {
+  return (data.source.index < data.target.index) ?
+            (data.source.index + "-" + data.target.index) :
+            (data.target.index + "-" + data.source.index);
+}
+
+function chordTween(oldLayout) {
+
+  var oldChords = {};
+
+  if (oldLayout) {
+    oldLayout.chords().forEach(function(chordData) {
+      oldChords[chordKey(chordData)] = chordData;
+    });
+  }
+
+  return function(d, i) {
+
+    var tween;
+    var old = oldChords[chordKey(d)];
+
+    if (old) {
+      if (d.source.index != old.source.index) {
+        old = { source:old.target, target:old.source };
+        tween = d3.interpolate(old, d);
+      }
+    }
+    else {
+      var emptyChord = {
+        source: { startAngle:d.source.startAngle, endAngle:d.source.startAngle },
+        target: { startAngle:d.target.startAngle, endAngle:d.target.startAngle }
+      };
+      tween = d3.interpolate(emptyChord, d);
+    }
+
+    return function(t) { return path(tween(t)); };
+
   };
 
-  chart.padding = function(value) {
-    if (!arguments.length) return padding;
-    padding = value;
-    return chart;
-  };
+}
 
-  return chart;
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
