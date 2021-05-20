@@ -18,7 +18,7 @@ d3.csv(sourceURL, function(error, data) {
     programNames.push(d.progName);
     tmp = [];
     for (var i = 0; i < data.length; i++) {
-      tmp.push(parseInt(d[i]));
+      tmp.push(parseInt(d[i])); // remember to use parseInt() because all int are read as str
     }
     matrix.push(tmp);
   });
